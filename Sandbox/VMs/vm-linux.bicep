@@ -4,6 +4,10 @@ param adminUsername string = 'azureuser'
 param vmSize string = 'Standard_B1ms'
 param osDiskSizeGB int
 
+@description('Daily auto-shutdown time, HHmm 24h')
+param shutdownTime string = '1900'
+param shutdownTimeZone string = 'Eastern Standard Time'
+
 @description('SSH public key, e.g. contents of ~/.ssh/id_ed25519.pub')
 param adminPublicKey string = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAyhMTs0QMrmoyn9XnbAMF87MxOWbyiiC5JjkGHIrRwv azure-lab'
 
@@ -103,6 +107,23 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
           }
         }
       ]
+    }
+  }
+}
+
+resource autoShutdown 'Microsoft.DevTestLab/schedules@2018-09-15' = {
+  name: 'shutdown-computevm-${vmName}'
+  location: location
+  properties: {
+    status: 'Enabled'
+    taskType: 'ComputeVmShutdownTask'
+    dailyRecurrence: {
+      time: shutdownTime
+    }
+    timeZoneId: shutdownTimeZone
+    targetResourceId: vm.id
+    notificationSettings: {
+      status: 'Disabled'
     }
   }
 }
