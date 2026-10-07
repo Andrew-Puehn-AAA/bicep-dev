@@ -1,6 +1,8 @@
-param vmName string = 'vm-linux-sbx-amtest-001'
+param vmName string
 param location string = resourceGroup().location
 param adminUsername string = 'azureuser'
+param vmSize string = 'Standard_B1ms'
+param osDiskSizeGB int
 
 @description('SSH public key, e.g. contents of ~/.ssh/id_ed25519.pub')
 param adminPublicKey string = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAyhMTs0QMrmoyn9XnbAMF87MxOWbyiiC5JjkGHIrRwv azure-lab'
@@ -47,7 +49,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
   }
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_B1ms'
+      vmSize: vmSize
     }
     storageProfile: {
       imageReference: {
@@ -63,7 +65,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-07-01' = {
           storageAccountType: 'StandardSSD_LRS'
         }
         deleteOption: 'Delete'
-        diskSizeGB: 40
+        diskSizeGB: osDiskSizeGB
       }
     }
     osProfile: {
