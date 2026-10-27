@@ -1,0 +1,543 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.48.1.52935",
+      "templateHash": "16863600278931474479"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus2",
+      "metadata": {
+        "description": "Azure region for all resources."
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "azureadmin",
+      "metadata": {
+        "description": "Linux administrator username."
+      }
+    },
+    "sshPublicKey": {
+      "type": "string",
+      "metadata": {
+        "description": "SSH public key for the Linux administrator account."
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_B1ms",
+      "metadata": {
+        "description": "Azure VM size."
+      }
+    },
+    "shutdownTime": {
+      "type": "string",
+      "defaultValue": "1900",
+      "metadata": {
+        "description": "Daily VM auto-shutdown time in HHmm 24-hour format."
+      }
+    },
+    "shutdownTimeZone": {
+      "type": "string",
+      "defaultValue": "Eastern Standard Time",
+      "metadata": {
+        "description": "Windows time zone ID used by Azure auto-shutdown."
+      }
+    }
+  },
+  "variables": {
+    "commonTags": {
+      "Environment": "Sandbox",
+      "Workload": "AxisTest",
+      "ManagedBy": "Bicep"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/applicationSecurityGroups",
+      "apiVersion": "2024-05-01",
+      "name": "asg-axistest001-eus2",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]"
+    },
+    {
+      "type": "Microsoft.Network/applicationSecurityGroups",
+      "apiVersion": "2024-05-01",
+      "name": "asg-axistest002-eus2",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]"
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2024-05-01",
+      "name": "nsg-axistest001-eus2",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "properties": {
+        "securityRules": []
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2024-05-01",
+      "name": "nsg-axistest002-eus2",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "properties": {
+        "securityRules": []
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2024-05-01",
+      "name": "vnet-sandbox-eus2-axistest-001",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.99.0.0/16"
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks/subnets",
+      "apiVersion": "2024-05-01",
+      "name": "[format('{0}/{1}', 'vnet-sandbox-eus2-axistest-001', 'sn-axistest001-eus2')]",
+      "properties": {
+        "addressPrefix": "10.99.0.0/24",
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-axistest001-eus2')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-axistest001-eus2')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-sandbox-eus2-axistest-001')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2024-05-01",
+      "name": "vnet-sandbox-eus2-axistest-002",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.100.0.0/16"
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks/subnets",
+      "apiVersion": "2024-05-01",
+      "name": "[format('{0}/{1}', 'vnet-sandbox-eus2-axistest-002', 'sn-axistest002-eus2')]",
+      "properties": {
+        "addressPrefix": "10.100.0.0/24",
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-axistest002-eus2')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-axistest002-eus2')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-sandbox-eus2-axistest-002')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+      "apiVersion": "2024-05-01",
+      "name": "[format('{0}/{1}', 'vnet-sandbox-eus2-axistest-001', 'peer-axistest001-to-axistest002')]",
+      "properties": {
+        "remoteVirtualNetwork": {
+          "id": "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-sandbox-eus2-axistest-002')]"
+        },
+        "allowVirtualNetworkAccess": true,
+        "allowForwardedTraffic": false,
+        "allowGatewayTransit": false,
+        "useRemoteGateways": false
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-sandbox-eus2-axistest-001', 'sn-axistest001-eus2')]",
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-sandbox-eus2-axistest-002', 'sn-axistest002-eus2')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-sandbox-eus2-axistest-001')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-sandbox-eus2-axistest-002')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+      "apiVersion": "2024-05-01",
+      "name": "[format('{0}/{1}', 'vnet-sandbox-eus2-axistest-002', 'peer-axistest002-to-axistest001')]",
+      "properties": {
+        "remoteVirtualNetwork": {
+          "id": "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-sandbox-eus2-axistest-001')]"
+        },
+        "allowVirtualNetworkAccess": true,
+        "allowForwardedTraffic": false,
+        "allowGatewayTransit": false,
+        "useRemoteGateways": false
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-sandbox-eus2-axistest-001', 'sn-axistest001-eus2')]",
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-sandbox-eus2-axistest-002', 'sn-axistest002-eus2')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-sandbox-eus2-axistest-001')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-sandbox-eus2-axistest-002')]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "nic001",
+        "count": "[length(range(0, 3))]"
+      },
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2024-05-01",
+      "name": "[format('nic-vm-axisasg-test001-0{0}', add(range(0, 3)[copyIndex()], 1))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "properties": {
+        "enableAcceleratedNetworking": false,
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "primary": true,
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-sandbox-eus2-axistest-001', 'sn-axistest001-eus2')]"
+              },
+              "applicationSecurityGroups": [
+                {
+                  "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', 'asg-axistest001-eus2')]"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/applicationSecurityGroups', 'asg-axistest001-eus2')]",
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-sandbox-eus2-axistest-001', 'sn-axistest001-eus2')]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "nic002",
+        "count": "[length(range(0, 3))]"
+      },
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2024-05-01",
+      "name": "[format('nic-vm-axisasg-test002-0{0}', add(range(0, 3)[copyIndex()], 1))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "properties": {
+        "enableAcceleratedNetworking": false,
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "primary": true,
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-sandbox-eus2-axistest-002', 'sn-axistest002-eus2')]"
+              },
+              "applicationSecurityGroups": [
+                {
+                  "id": "[resourceId('Microsoft.Network/applicationSecurityGroups', 'asg-axistest002-eus2')]"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/applicationSecurityGroups', 'asg-axistest002-eus2')]",
+        "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-sandbox-eus2-axistest-002', 'sn-axistest002-eus2')]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "vm001",
+        "count": "[length(range(0, 3))]"
+      },
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2024-07-01",
+      "name": "[format('vm-axisasg-test001-0{0}', add(range(0, 3)[copyIndex()], 1))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "securityProfile": {
+          "securityType": "TrustedLaunch",
+          "uefiSettings": {
+            "secureBootEnabled": true,
+            "vTpmEnabled": true
+          }
+        },
+        "osProfile": {
+          "computerName": "[format('axis001-0{0}', add(range(0, 3)[copyIndex()], 1))]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": true,
+            "provisionVMAgent": true,
+            "patchSettings": {
+              "patchMode": "ImageDefault",
+              "assessmentMode": "ImageDefault"
+            },
+            "ssh": {
+              "publicKeys": [
+                {
+                  "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('adminUsername'))]",
+                  "keyData": "[parameters('sshPublicKey')]"
+                }
+              ]
+            }
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "0001-com-ubuntu-server-jammy",
+            "sku": "22_04-lts-gen2",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[format('osdisk-vm-axisasg-test001-0{0}', add(range(0, 3)[copyIndex()], 1))]",
+            "createOption": "FromImage",
+            "deleteOption": "Delete",
+            "diskSizeGB": 30,
+            "managedDisk": {
+              "storageAccountType": "Standard_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('nic-vm-axisasg-test001-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]",
+              "properties": {
+                "primary": true,
+                "deleteOption": "Delete"
+              }
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', format('nic-vm-axisasg-test001-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "vm002",
+        "count": "[length(range(0, 3))]"
+      },
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2024-07-01",
+      "name": "[format('vm-axisasg-test002-0{0}', add(range(0, 3)[copyIndex()], 1))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "securityProfile": {
+          "securityType": "TrustedLaunch",
+          "uefiSettings": {
+            "secureBootEnabled": true,
+            "vTpmEnabled": true
+          }
+        },
+        "osProfile": {
+          "computerName": "[format('axis002-0{0}', add(range(0, 3)[copyIndex()], 1))]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": true,
+            "provisionVMAgent": true,
+            "patchSettings": {
+              "patchMode": "ImageDefault",
+              "assessmentMode": "ImageDefault"
+            },
+            "ssh": {
+              "publicKeys": [
+                {
+                  "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('adminUsername'))]",
+                  "keyData": "[parameters('sshPublicKey')]"
+                }
+              ]
+            }
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "0001-com-ubuntu-server-jammy",
+            "sku": "22_04-lts-gen2",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[format('osdisk-vm-axisasg-test002-0{0}', add(range(0, 3)[copyIndex()], 1))]",
+            "createOption": "FromImage",
+            "deleteOption": "Delete",
+            "diskSizeGB": 30,
+            "managedDisk": {
+              "storageAccountType": "Standard_LRS"
+            }
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', format('nic-vm-axisasg-test002-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]",
+              "properties": {
+                "primary": true,
+                "deleteOption": "Delete"
+              }
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', format('nic-vm-axisasg-test002-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "autoShutdown001",
+        "count": "[length(range(0, 3))]"
+      },
+      "type": "Microsoft.DevTestLab/schedules",
+      "apiVersion": "2018-09-15",
+      "name": "[format('shutdown-computevm-{0}', format('vm-axisasg-test001-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "properties": {
+        "status": "Enabled",
+        "taskType": "ComputeVmShutdownTask",
+        "dailyRecurrence": {
+          "time": "[parameters('shutdownTime')]"
+        },
+        "timeZoneId": "[parameters('shutdownTimeZone')]",
+        "targetResourceId": "[resourceId('Microsoft.Compute/virtualMachines', format('vm-axisasg-test001-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]",
+        "notificationSettings": {
+          "status": "Disabled"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', format('vm-axisasg-test001-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]",
+        "[resourceId('Microsoft.Compute/virtualMachines', format('vm-axisasg-test001-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "autoShutdown002",
+        "count": "[length(range(0, 3))]"
+      },
+      "type": "Microsoft.DevTestLab/schedules",
+      "apiVersion": "2018-09-15",
+      "name": "[format('shutdown-computevm-{0}', format('vm-axisasg-test002-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]",
+      "properties": {
+        "status": "Enabled",
+        "taskType": "ComputeVmShutdownTask",
+        "dailyRecurrence": {
+          "time": "[parameters('shutdownTime')]"
+        },
+        "timeZoneId": "[parameters('shutdownTimeZone')]",
+        "targetResourceId": "[resourceId('Microsoft.Compute/virtualMachines', format('vm-axisasg-test002-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]",
+        "notificationSettings": {
+          "status": "Disabled"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Compute/virtualMachines', format('vm-axisasg-test002-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]",
+        "[resourceId('Microsoft.Compute/virtualMachines', format('vm-axisasg-test002-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1)))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "vnet001Name": {
+      "type": "string",
+      "value": "vnet-sandbox-eus2-axistest-001"
+    },
+    "subnet001Name": {
+      "type": "string",
+      "value": "sn-axistest001-eus2"
+    },
+    "nsg001Name": {
+      "type": "string",
+      "value": "nsg-axistest001-eus2"
+    },
+    "asg001Name": {
+      "type": "string",
+      "value": "asg-axistest001-eus2"
+    },
+    "vnet002Name": {
+      "type": "string",
+      "value": "vnet-sandbox-eus2-axistest-002"
+    },
+    "subnet002Name": {
+      "type": "string",
+      "value": "sn-axistest002-eus2"
+    },
+    "nsg002Name": {
+      "type": "string",
+      "value": "nsg-axistest002-eus2"
+    },
+    "asg002Name": {
+      "type": "string",
+      "value": "asg-axistest002-eus2"
+    },
+    "vm001Names": {
+      "type": "array",
+      "copy": {
+        "count": "[length(range(0, 3))]",
+        "input": "[format('vm-axisasg-test001-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1))]"
+      }
+    },
+    "vm002Names": {
+      "type": "array",
+      "copy": {
+        "count": "[length(range(0, 3))]",
+        "input": "[format('vm-axisasg-test002-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1))]"
+      }
+    },
+    "vm001PrivateIPs": {
+      "type": "array",
+      "copy": {
+        "count": "[length(range(0, 3))]",
+        "input": "[reference(resourceId('Microsoft.Network/networkInterfaces', format('nic-vm-axisasg-test001-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1))), '2024-05-01').ipConfigurations[0].properties.privateIPAddress]"
+      }
+    },
+    "vm002PrivateIPs": {
+      "type": "array",
+      "copy": {
+        "count": "[length(range(0, 3))]",
+        "input": "[reference(resourceId('Microsoft.Network/networkInterfaces', format('nic-vm-axisasg-test002-0{0}', add(range(0, 3)[range(0, 3)[copyIndex()]], 1))), '2024-05-01').ipConfigurations[0].properties.privateIPAddress]"
+      }
+    },
+    "autoShutdownConfiguration": {
+      "type": "string",
+      "value": "[format('{0} {1}', parameters('shutdownTime'), parameters('shutdownTimeZone'))]"
+    }
+  }
+}

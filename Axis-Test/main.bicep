@@ -37,13 +37,25 @@ var commonTags = {
 // ============================================================
 
 resource asg001 'Microsoft.Network/applicationSecurityGroups@2024-05-01' = {
-  name: 'asg-axistest001-eus2'
+  name: 'asg-axistest001-eus2-001'
+  location: location
+  tags: commonTags
+}
+
+resource asg001002 'Microsoft.Network/applicationSecurityGroups@2024-05-01' = {
+  name: 'asg-axistest001-eus2-002'
   location: location
   tags: commonTags
 }
 
 resource asg002 'Microsoft.Network/applicationSecurityGroups@2024-05-01' = {
-  name: 'asg-axistest002-eus2'
+  name: 'asg-axistest002-eus2-001'
+  location: location
+  tags: commonTags
+}
+
+resource asg002002 'Microsoft.Network/applicationSecurityGroups@2024-05-01' = {
+  name: 'asg-axistest002-eus2-002'
   location: location
   tags: commonTags
 }
@@ -172,7 +184,7 @@ resource peering002to001 'Microsoft.Network/virtualNetworks/virtualNetworkPeerin
 // Each NIC:
 //   - Is connected to subnet 001.
 //   - Receives a dynamic private address.
-//   - Is added to ASG 001.
+//   - VMs 01 and 02 join ASG 001; VM 03 joins ASG 002.
 //   - Does not receive a public IP.
 // ============================================================
 
@@ -194,7 +206,7 @@ resource nic001 'Microsoft.Network/networkInterfaces@2024-05-01' = [
             }
             applicationSecurityGroups: [
               {
-                id: asg001.id
+                id: i == 2 ? asg001002.id : asg001.id
               }
             ]
           }
@@ -210,7 +222,7 @@ resource nic001 'Microsoft.Network/networkInterfaces@2024-05-01' = [
 // Each NIC:
 //   - Is connected to subnet 002.
 //   - Receives a dynamic private address.
-//   - Is added to ASG 002.
+//   - VMs 01 and 02 join ASG 001; VM 03 joins ASG 002.
 //   - Does not receive a public IP.
 // ============================================================
 
@@ -232,7 +244,7 @@ resource nic002 'Microsoft.Network/networkInterfaces@2024-05-01' = [
             }
             applicationSecurityGroups: [
               {
-                id: asg002.id
+                id: i == 2 ? asg002002.id : asg002.id
               }
             ]
           }
